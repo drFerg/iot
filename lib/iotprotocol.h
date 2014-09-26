@@ -1,11 +1,11 @@
-/* KNoT Protocol definition
+/* iot Protocol definition
 *
 * Hardware and link/transport level independent protocol definition
 *
 * author Fergus William Leahy
 */ 
-#ifndef KNOT_PROTOCOL_H
-#define KNOT_PROTOCOL_H
+#ifndef IOT_PROTOCOL_H
+#define IOT_PROTOCOL_H
  
 //Sensor type
 #define TEMP   1
@@ -195,4 +195,4 @@ typedef nx_struct serial_cack{
    nx_uint8_t src;
 }SerialConnectACKMsg;
 
-#endif /* KNOT_PROTOCOL_H */
+#endif /* IOT_PROTOCOL_H */
