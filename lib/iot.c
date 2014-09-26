@@ -38,15 +38,11 @@ void increment_seq_no(ChanState *state, DataPayload *dp){
 	dp->hdr.seqno = state->seqno;
 }
 
-void send(int dest, DataPayload *dp){
+void send(Address *addr, DataPayload *dp){
 	uint8_t len = sizeof(PayloadHeader) + sizeof(DataHeader) + dp->dhdr.tlen;
-	DataPayload *payload = (DataPayload *);
-	memcpy(payload, dp, sizeof(DataPayload));
-	//AMPacket.setSource(&am_pkt, AMPacket.address());
-	if (net_sendto(dest, &am_pkt, len) == SUCCESS) {
-		sendBusy = TRUE;
-		PRINTF("RADIO>> Sent a %s packet to Thing %d\n", cmdnames[dp->hdr.cmd], dest);		
-		PRINTF("RADIO>> KNoT Payload Length: %d\n", dp->dhdr.tlen);
+	if (net_sendto(addr, dp, len) == SUCCESS) {
+		PRINTF("RADIO>> Sent a %s packet to Thing %d\n", cmdnames[dp->hdr.cmd], );		
+		PRINTF("RADIO>> iot Payload Length: %d\n", dp->dhdr.tlen);
 	}
 	else {
 		PRINTF("ID: %d, Radio Msg could not be sent, channel busy\n", TOS_NODE_ID);

@@ -31,8 +31,8 @@ $(RF24)/librf24.a:
 network.o: rf24_network.c network.h 
 	gcc -c $(CFLAGS) -I$(RF24) rf24_network.c network.h 
 
-pingtest: test.c ${DEPS} ${LIBS}
-	gcc ${CFLAGS} pingtest.c ${OBJECTS} ${LIBS} -o test 
+test: test.c ${DEPS} ${LIBS}
+	gcc ${CFLAGS} test.c ${OBJECTS} ${LIBS} -o test 
 
 clean:
 	rm -rf *o ${LIBNAME}

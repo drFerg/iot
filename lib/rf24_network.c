@@ -1,6 +1,6 @@
 #include "network.h"
 #include "rf24.h"
-
+#include "stdio.h"
 typedef struct address{
     uint8_t addr[5];
 } Address;
@@ -25,4 +25,22 @@ void net_sendto(Address *addr, void *payload, int len){
 
 int net_receivefrom(Address *addr, void *payload, int len, int block){
     return rf24_recvfrom(payload, len, (uint8_t*)addr, block);
+}
+
+char * net_ntoa(Address *addr){
+    static char str[ADDR_WIDTH * 4];
+    switch(ADDR_WIDTH){
+        case(5): sprintf(str, "%d.%d.%d.%d.%d", (addr->addr)[0], (addr->addr)[1], 
+                                                (addr->addr)[2], (addr->addr)[3], 
+                                                (addr->addr)[4]);break;
+        case(4): sprintf(str, "%d.%d.%d.%d", (addr->addr)[0], (addr->addr)[1], 
+                                             (addr->addr)[2], (addr->addr)[3]); break;
+        case(3): sprintf(str, "%d.%d.%d", (addr->addr)[0], (addr->addr)[1], 
+                                          (addr->addr)[2]); break;
+    }
+    return str;
+}
+
+Address *net_addr(){
+    return &address;
 }
