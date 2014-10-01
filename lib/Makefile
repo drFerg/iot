@@ -15,8 +15,8 @@ ifeq ($(platform), pi)
     CFLAGS+=-Ofast -mfpu=vfp -mfloat-abi=hard -march=armv6zk -mtune=arm1176jzf-s
 endif
 
-DEPS=network.o rf24_network.o cstate.o ctable.o iot.o
-OBJECTS=rf24_network.o cstate.o ctable.o iot.o
+DEPS= cstate.o ctable.o iot.o
+OBJECTS= cstate.o ctable.o iot.o
 LIBS=librf24.a
 
 all: test
@@ -33,10 +33,16 @@ iot.o: cstate.o ctable.o iot.h iot.c
 
 # Library parts
 network.o: rf24_network.c network.h 
-	gcc -c $(CFLAGS) -I$(RF24) rf24_network.c network.h 
+	gcc -c $(CFLAGS) -I$(RF24) rf24_network.c network.h
 
-test: test.c ${DEPS} ${LIBS}
-	gcc ${CFLAGS} test.c ${OBJECTS} ${LIBS} -o test 
+dummy.o: dummy_network.c network.h 
+	gcc -c $(CFLAGS) -I$(RF24) dummy_network.c network.h 
+
+dummy: test.c ${DEPS} dummy.o ${LIBS}
+	gcc ${CFLAGS} test.c ${OBJECTS} dummy_network.o ${LIBS} -o test 
+
+test: test.c ${DEPS} network.o ${LIBS}
+	gcc ${CFLAGS} test.c ${OBJECTS} rf24_network.o ${LIBS} -o test 
 
 clean:
 	rm -rf *o ${LIBNAME}

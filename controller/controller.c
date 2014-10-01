@@ -149,7 +149,7 @@ int main(){
     }
     while (1){
         len = net_recvfrom(pkt, PKT_LEN, src, SYNC);
-        network_handler(src, pkt, len);
+        if (len) network_handler(src, pkt, len);
     }
     return 0;
 }

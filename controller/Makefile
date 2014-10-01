@@ -18,6 +18,9 @@ endif
 DEPS=
 OBJECTS=rf24_network.o cstate.o ctable.o iot.o
 OBJ=${addprefix ../lib/, ${OBJECTS}}
+DUMMYOBJECTS=dummy_network.o cstate.o ctable.o iot.o
+DOBJ=${addprefix ../lib/, ${DUMMYOBJECTS}}
+
 LIBS=-lrf24
 
 all: controller
@@ -26,8 +29,13 @@ all: controller
 objs: 
 	(cd ${IOT}; make)
 
+dummy_objs: 
+	(cd ${IOT}; make dummy)
+
 controller: controller.c objs
 	gcc ${CFLAGS} -I${IOT} -L${IOT} controller.c ${OBJ} ${LIBS} -o controller 
 
+dummy_controller: controller.c dummy_objs
+	gcc ${CFLAGS} -I${IOT} -L${IOT} controller.c ${DOBJ} ${LIBS} -o controller
 clean:
 	rm -rf *o ${LIBNAME}
