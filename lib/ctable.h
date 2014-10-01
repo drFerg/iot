@@ -1,6 +1,6 @@
 #ifndef CHANNEL_TABLE
 #define CHANNEL_TABLE
-
+#include <stdint.h>
 #include "cstate.h"
 /* Num of channels available in table */
 #ifndef CHANNEL_NUM
@@ -40,3 +40,4 @@ void ctable_remove_channel(int channel);
  * destroys table 
  */
 void ctable_destroy_table();
+#endif

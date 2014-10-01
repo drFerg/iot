@@ -1,10 +1,14 @@
 #ifndef IOT_H
 #define IOT_H
-/*Change include to suit lower layer network */
+#include <stdint.h>
 #include "iotprotocol.h"
 #include "cstate.h"
+#include "network.h"
 
- 
+#define HOME_CHANNEL 0
+typedef uint8_t bool;
+#define FALSE 0
+#define TRUE 1
 /*
 * the following definitions control the exponential backoff retry
 * mechanism used in the protocol - these may also be changed using
@@ -39,13 +43,13 @@ void iot_knot_broadcast(ChanState *state, DataPayload *dp);
 
 void iot_query(ChanState* state, uint8_t type);
 
-void iot_query_handler(ChanState *state, DataPayload *dp, uint8_t src);
+void iot_query_handler(ChanState *state, DataPayload *dp, Address *src);
 
-void iot_qack_handler(ChanState *state, DataPayload *dp, uint8_t src);
+void iot_qack_handler(ChanState *state, DataPayload *dp, Address *src);
 
-void iot_connect(ChanState *new_state, uint8_t addr, int rate);
+void iot_connect(ChanState *new_state, Address *addr, int rate);
 
-void iot_connect_handler(ChanState *state, DataPayload *dp, uint8_t src);
+void iot_connect_handler(ChanState *state, DataPayload *dp, Address *src);
 
 uint8_t iot_controller_cack_handler(ChanState *state, DataPayload *dp);
 
@@ -73,6 +77,6 @@ void iot_close_graceful(ChanState *state);
 /* Handles the reception of a DISCONNECT packet */
 void iot_disconnect_handler(ChanState *state, DataPayload *dp);
 
-message_t* iot_receive(uint8_t src, message_t *msg, void *payload, uint8_t len);
+void iot_receive(Address *src, void *payload, uint8_t len);
 
 #endif /* IOT_H */

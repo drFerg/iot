@@ -1,10 +1,11 @@
 /*
 * author Fergus William Leahy
 */
-#ifndef KNOT_CHANNEL_STATE_H
-#define KNOT_CHANNEL_STATE_H
-
-#include "KNoTProtocol.h"
+#ifndef CSTATE_H
+#define CSTATE_H
+#include <stdint.h>
+#include "iotprotocol.h"
+#include "network.h"
 
 /* Connection states */
 #define STATE_IDLE       0
@@ -38,7 +39,7 @@
 #define decrement_attempts(chanstate)(chanstate->attempts_left--)
 
 typedef struct channel_state{
-   uint8_t remote_addr; //Holds address of remote device
+   Address *remote_addr; //Holds address of remote device
    uint8_t state;
    uint8_t seqno;
    uint8_t chan_num;
@@ -48,12 +49,11 @@ typedef struct channel_state{
    uint8_t ticks_left;
    uint8_t ticks_till_ping;
    uint8_t attempts_left;
-   uint8_t key[SYM_KEY_SIZE];
    uint8_t packet[MAX_PACKET_SIZE];
 }ChanState;
 
+void cstate_init_state(ChanState *state, uint8_t chan_num);
 
 
 
-
-#endif /* KNOT_CHANNEL_STATE_H */
+#endif /* CSTATE_H */

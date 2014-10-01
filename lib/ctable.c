@@ -97,4 +97,3 @@ void ctable_remove_channel(int channel){
  * destroys table 
  */
 void ctable_destroy_table(){}
-}

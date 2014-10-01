@@ -15,8 +15,8 @@ ifeq ($(platform), pi)
     CFLAGS+=-Ofast -mfpu=vfp -mfloat-abi=hard -march=armv6zk -mtune=arm1176jzf-s
 endif
 
-DEPS=network.o
-OBJECTS=rf24_network.o 
+DEPS=network.o rf24_network.o cstate.o ctable.o iot.o
+OBJECTS=rf24_network.o cstate.o ctable.o iot.o
 LIBS=librf24.a
 
 all: test
@@ -26,6 +26,10 @@ librf24.a: $(RF24)/librf24.a
 
 $(RF24)/librf24.a:
 	(cd $(RF24); make lib)
+
+cstate.o: cstate.c cstate.h
+ctable.o:cstate.o ctable.c ctable.h
+iot.o: cstate.o ctable.o iot.h iot.c
 
 # Library parts
 network.o: rf24_network.c network.h 

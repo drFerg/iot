@@ -6,7 +6,8 @@
 */ 
 #ifndef IOT_PROTOCOL_H
 #define IOT_PROTOCOL_H
- 
+#include <stdint.h>
+
 //Sensor type
 #define TEMP   1
 #define HUM    2
@@ -52,81 +53,76 @@
 #define MAC_SIZE            4
 #define E_NONCE_SIZE       45 /* 4(nonce) + 20(KEY_SIZE) + 1 + 20(HMAC) */ 
 #define E_KEY_SIZE         55 /* 4(nonce) + 10(SYM_KEY_SIZE)+ 20(KEY_SIZE) + 1 + 20(HMAC) */
-const char *cmdnames[24] = {"DUMMY0", "QUERY", "QACK","CONNECT", "CACK", 
-                            "RSYN", "RACK", "DISCONNECT", "DACK",
-                            "COMMAND", "COMMANDACK", "PING", "PACK", "SEQNO",
-                            "SEQACK", "DUMMY1", "RESPONSE", "ASYM_QUERY",
-                            "ASYM_RESP", "ASYM_RESP_ACK", "DUMMY2", 
-                            "ASYM_KEY_REQ", "ASYM_KEY_RESP", "KEY_HANDOVER"};
-typedef nx_struct chan_header {
-   nx_uint8_t src_chan_num;
-   nx_uint8_t dst_chan_num;
+typedef struct chan_header {
+
 } ChanHeader;
 
-typedef nx_struct payload_header {
-   nx_uint16_t seqno;   /* sequence number */
-   nx_uint8_t cmd;	/* message type */
+typedef struct payload_header {
+   uint8_t src_chan_num;
+   uint8_t dst_chan_num;
+   uint16_t seqno;   /* sequence number */
+   uint8_t cmd;	/* message type */
 } PayloadHeader;
 
-typedef nx_struct data_header {
-   nx_uint8_t tlen;	/* total length of the data */
+typedef struct data_header {
+   uint8_t tlen;	/* total length of the data */
 } DataHeader;
 
-typedef nx_struct data_payload {		/* template for data payload */
+typedef struct data_payload {		/* template for data payload */
    PayloadHeader hdr;
    DataHeader dhdr;
-   nx_uint8_t data[MAX_DATA_SIZE];	/* data is address of MAX_DATA_SIZE bytes */
+   uint8_t data[MAX_DATA_SIZE];	/* data is address of MAX_DATA_SIZE bytes */
 } DataPayload;
 
 /*********************/
 /* Asymmetric Packet */
-typedef nx_struct pubKey {
-   nx_uint16_t x[10];
-   nx_uint16_t y[10];
+typedef struct pubKey {
+   uint16_t x[10];
+   uint16_t y[10];
 } PubKey; /* 40bytes */
 
-typedef nx_struct sig {
-   nx_uint16_t r[11];
-   nx_uint16_t s[11];
+typedef struct sig {
+   uint16_t r[11];
+   uint16_t s[11];
 } Signature; /* 42bytes */
 
-typedef nx_struct pkc {
+typedef struct pkc {
    PubKey pubKey;
    Signature sig;
 } PKC; /* 80bytes */
 
-typedef nx_struct asym_query_payload {
+typedef struct asym_query_payload {
    PKC pkc;
-   nx_uint8_t flags; /* handshake/cipherSpec? */
+   uint8_t flags; /* handshake/cipherSpec? */
 } AsymQueryPayload; /* 81bytes */
 
-typedef nx_struct asym_resp_ack_payload {
-   nx_uint8_t flags;
+typedef struct asym_resp_ack_payload {
+   uint8_t flags;
 } AsymRespACKPayload; /* 81bytes */
 
-typedef nx_struct asym_request_payload {
-   nx_uint8_t e_nonce[E_NONCE_SIZE];
+typedef struct asym_request_payload {
+   uint8_t e_nonce[E_NONCE_SIZE];
    Signature sig;
 } AsymKeyRequestPayload; /* 85bytes */
 
 typedef struct asym_key_payload {
    uint32_t nonce;
-   nx_uint8_t sKey[10];
+   uint8_t sKey[10];
 } AsymKeyPayload;
 
-typedef nx_struct asym_key_tx_payload {
-   nx_uint8_t e_payload[E_KEY_SIZE];
+typedef struct asym_key_tx_payload {
+   uint8_t e_payload[E_KEY_SIZE];
    Signature sig;
 } AsymKeyRespPayload;
 
 /********************/
 /* Symmetric Packet */
-typedef nx_struct sec_header {
-   nx_uint8_t tag[MAC_SIZE];
+typedef struct sec_header {
+   uint8_t tag[MAC_SIZE];
 } SSecHeader;
 
-typedef nx_struct symmetric_secure_data_payload {
-   nx_uint8_t flags;
+typedef struct symmetric_secure_data_payload {
+   uint8_t flags;
    /* 1 byte Pad */   
    SSecHeader sh;
    ChanHeader ch;
@@ -135,13 +131,13 @@ typedef nx_struct symmetric_secure_data_payload {
 
 /****************/
 /* Plain Packet */
-typedef nx_struct plain_data_payload {
+typedef struct plain_data_payload {
    ChanHeader ch;
    DataPayload dp;
 } PDataPayload;
 
-typedef nx_struct packet {
-   nx_uint8_t flags;
+typedef struct packet {
+   uint8_t flags;
    ChanHeader ch;
    DataPayload dp;
 } Packet;
@@ -149,50 +145,50 @@ typedef nx_struct packet {
 /********************/
 /* Message Payloads */
 
-typedef nx_struct query{
-   nx_uint8_t type;
-   nx_uint8_t name[NAME_SIZE];
+typedef struct query{
+   uint8_t type;
+   uint8_t name[NAME_SIZE];
 }QueryMsg;
 
-typedef nx_struct query_response{
-   nx_uint16_t id;
-   nx_uint16_t rate;
-   nx_uint8_t type;
-   nx_uint8_t name[NAME_SIZE];
+typedef struct query_response{
+   uint16_t id;
+   uint16_t rate;
+   uint8_t type;
+   uint8_t name[NAME_SIZE];
 }QueryResponseMsg;
 
-typedef nx_struct connect_message{
-   nx_uint16_t rate;
+typedef struct connect_message{
+   uint16_t rate;
 }ConnectMsg;
 
-typedef nx_struct cack{
-   nx_uint8_t accept;
+typedef struct cack{
+   uint8_t accept;
 }ConnectACKMsg;
 
-typedef nx_struct response{
-   nx_uint8_t data[MAX_DATA_SIZE];
+typedef struct response{
+   uint8_t data[MAX_DATA_SIZE];
 }ResponseMsg;
 
-typedef nx_struct serial_query_response{
-   nx_uint8_t type;
-   nx_uint16_t rate;
-   nx_uint8_t name[NAME_SIZE];
-   nx_uint8_t src;
+typedef struct serial_query_response{
+   uint8_t type;
+   uint16_t rate;
+   uint8_t name[NAME_SIZE];
+   uint8_t src;
 }SerialQueryResponseMsg;
 
-typedef nx_struct serial_response{
-   nx_uint8_t data;
-   nx_uint8_t src;
+typedef struct serial_response{
+   uint8_t data;
+   uint8_t src;
 }SerialResponseMsg;
 
-typedef nx_struct serial_connect{
-   nx_uint8_t addr;
-   nx_uint8_t rate;
+typedef struct serial_connect{
+   uint8_t addr;
+   uint8_t rate;
 }SerialConnect;
 
-typedef nx_struct serial_cack{
-   nx_uint8_t accept;
-   nx_uint8_t src;
+typedef struct serial_cack{
+   uint8_t accept;
+   uint8_t src;
 }SerialConnectACKMsg;
 
 #endif /* IOT_PROTOCOL_H */
