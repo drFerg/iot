@@ -9,7 +9,7 @@
 
 # The recommended compiler flags for the Raspberry Pi
 CFLAGS= -Wall -W -fPIC -g -pthread
-RF24=../../nrf_lib/RF24/src/
+RF24=../../nrf_radio/RF24/src/
 # make all
 ifeq ($(platform), pi)
     CFLAGS+=-Ofast -mfpu=vfp -mfloat-abi=hard -march=armv6zk -mtune=arm1176jzf-s
