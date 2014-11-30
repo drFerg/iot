@@ -33,6 +33,9 @@ char * net_ntoa(Address *addr){
     sprintf(str, "%d", addr->addr);
     return str;
 }
+int net_aton(char *addr_s, Address *addr){
+    return sscanf(addr_s, "%3d", &(addr->addr));
+}
 
 void net_addrcpy(Address *dst, Address *src){
     dst->addr = src->addr;

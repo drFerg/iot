@@ -45,7 +45,7 @@ void increment_seq_no(ChanState *state, DataPayload *dp){
 void send(Address *addr, DataPayload *dp){
 	uint8_t len = sizeof(PayloadHeader) + sizeof(DataHeader) + dp->dhdr.tlen;
 	if (net_sendto(addr, dp, len) == TRUE) {
-		PRINTF("RADIO>> Sent a %s packet to Thing %d\n", cmdnames[dp->hdr.cmd], );		
+		PRINTF("RADIO>> Sent a %s packet to Thing %s\n", cmdnames[dp->hdr.cmd], net_ntoa(addr));		
 		PRINTF("RADIO>> iot Payload Length: %d\n", dp->dhdr.tlen);
 	}
 	else {

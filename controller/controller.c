@@ -1,7 +1,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
+
 //#include "Timer.h"
+#include "tsuqueue.h"
 #include "ctable.h"
 #include "cstate.h"
 #include "iotprotocol.h"
@@ -21,8 +24,27 @@
 #endif
 
 #define PKT_LEN 32
+#define NETWORK_EVENT 1
+#define UI_EVENT      2
+#define HWDB_EVENT    3
 
+typedef struct event {
+    int type;
+    int len;
+    uint8_t pkt[PKT_LEN];
+    Address *src;
+    int command;
+    char arg[20];
+} Event;
+
+
+int len = 0;
+uint8_t pkt[PKT_LEN];
+Address *src;
+int com;
+char arg[20];
 ChanState home_chan;
+
 	/* Checks the timer for a channel's state, retransmitting when necessary */
 void check_timer(ChanState *state) {
     decrement_ticks(state);
@@ -56,16 +78,6 @@ void cleaner(){
     }*/
 }
   
-/*------------------------------------------------- */
-
-void init() {
-	PRINTF("\n*********************\n****** BOOTED *******\n*********************\n");
-    PRINTFFLUSH();
-    ctable_init_table();
-    cstate_init_state(&home_chan, 0);
-    //set timer for cleaner(TICK_RATE);
-}
-
 
 /*-----------Received packet event, main state event ------------------------------- */
 void network_handler(Address *src, uint8_t* payload, uint8_t len) {
@@ -138,18 +150,89 @@ void network_handler(Address *src, uint8_t* payload, uint8_t len) {
 //     serialSendBusy = FALSE;
 // }
 
+void ui_handler(int command, char *arg){
+    switch(command){
+        case(1): iot_query(&home_chan, (int)arg[0]); break;
+        case(2): iot_connect(&home_chan, (Address*)arg, 10); break;
+    }
+}
+
+void *network_thread(void *eQueue){
+    TSUQueue *eventQ = (TSUQueue *)eQueue;
+    Event *e = NULL;
+    while(1){
+        /* Prep Network event */
+        e = (Event *) calloc(sizeof(Event), '\0');
+        if (e == NULL) {
+            printf("Network thread exit, malloc failed\n");
+            exit(1);
+        }
+        e->type = NETWORK_EVENT;
+        /* Receive packet */
+        while (e->len == 0)
+            e->len = net_recvfrom(&(e->pkt), PKT_LEN, e->src, SYNC);
+        tsuq_add(eventQ, e); /* Added to event Q */
+    }
+}
+
+
+void *ui_thread(void *e){
+    TSUQueue *eventQ = (TSUQueue *)e;
+    Event *event = NULL;
+    char command[10];
+    char text[20];
+    while(1){
+        /* Prep UI event */
+        event = (Event *) calloc(sizeof(Event), '\0');
+        if (event == NULL) {
+            printf("Network thread exit, malloc failed\n");
+            exit(1);
+        }
+        event->type = UI_EVENT;
+        /* Get ui event */
+        if (fgets(text, sizeof(text), stdin) != NULL){
+            if (sscanf(text, "%s", command) == 0) continue;
+            if (strncmp(command, "query", 5) == 0){
+                event->command = 1;
+                if (sscanf(&(text[5]), "%d", (int*)event->arg) == 0)continue;
+                printf("Query for device type %d\n", (int)event->arg[0]); 
+            }
+            if (strncmp(command, "connect", 7) == 0){
+                event->command = 2;
+                if (net_aton(&(text[7]), (Address*)event->arg) == 0) continue;
+                printf("Connect to device %s\n", net_ntoa((Address *)event->arg)); 
+            }
+        }
+        tsuq_add(eventQ, event); /* Added to event Q */
+    }
+}
+
+
 int main(){
-    int len = 0;
-    uint8_t pkt[PKT_LEN];
-    Address *src = net_addralloc();
+    pthread_t network_t;
+    pthread_t ui_t;
+    Event *event = NULL;
+    TSUQueue *eventQ = tsuq_create();
+    ctable_init_table();
+    cstate_init_state(&home_chan, 0);
+    //set timer for cleaner(TICK_RATE);
+    src = net_addralloc();
     int status = net_init();
     if (status == 0){
         printf("Catastrophic error, exiting.\n");
         return -1;
     }
+    pthread_create(&network_t, NULL, network_thread, eventQ);
+    pthread_create(&ui_t, NULL, ui_thread, eventQ);
     while (1){
-        len = net_recvfrom(pkt, PKT_LEN, src, SYNC);
-        if (len) network_handler(src, pkt, len);
+        tsuq_take(eventQ, (void**)&event);
+        printf("Event status: %d\n", event->type);
+        switch(event->type){
+            case(NETWORK_EVENT): network_handler(event->src, event->pkt, event->len); break;
+            case(UI_EVENT): ui_handler(event->command, event->arg); break;
+            case(HWDB_EVENT): break;
+        }
+        free(event);
     }
     return 0;
 }

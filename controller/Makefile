@@ -8,7 +8,7 @@
 #
 
 # The recommended compiler flags for the Raspberry Pi
-CFLAGS= -Wall -W -fPIC -g -pthread
+CFLAGS= -Wall -W -fPIC -g
 IOT=../lib
 # make all
 ifeq ($(platform), pi)
@@ -19,9 +19,12 @@ DEPS=
 OBJECTS=rf24_network.o cstate.o ctable.o iot.o
 OBJ=${addprefix ../lib/, ${OBJECTS}}
 DUMMYOBJECTS=dummy_network.o cstate.o ctable.o iot.o
-DOBJ=${addprefix ../lib/, ${DUMMYOBJECTS}}
+DOBJ=${addprefix ../lib/, ${DUMMYOBJECTS}} 
+ADTSOBJ=${ADTS}/tsuqueue.o
 
-LIBS=-lrf24
+LIBS=-lrf24 ${ADTS}/libADTs.a -pthread
+ADTS=../adts
+
 
 all: controller
 
@@ -32,10 +35,13 @@ objs:
 dummy_objs: 
 	(cd ${IOT}; make dummy)
 
-controller: controller.c objs
-	gcc ${CFLAGS} -I${IOT} -L${IOT} controller.c ${OBJ} ${LIBS} -o controller 
+libADTs.a:
+	(cd ${ADTS}; make)
 
-dummy_controller: controller.c dummy_objs
-	gcc ${CFLAGS} -I${IOT} -L${IOT} controller.c ${DOBJ} ${LIBS} -o controller
+controller: controller.c objs
+	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} controller.c ${OBJ} ${LIBS} -o controller 
+
+dummy_controller: controller.c dummy_objs ${ADTS}/tsuqueue.o ${ADTS}/tsuqueue.h
+	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} controller.c ${DOBJ} ${LIBS} -o controller
 clean:
 	rm -rf *o ${LIBNAME}
