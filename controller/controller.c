@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
-
+#include <signal.h>
+#include <unistd.h>
 //#include "Timer.h"
 #include "tsuqueue.h"
 #include "ctable.h"
@@ -28,6 +29,8 @@
 #define UI_EVENT      2
 #define HWDB_EVENT    3
 
+#define NETWORK_THREADS 5
+
 typedef struct event {
     int type;
     int len;
@@ -37,7 +40,9 @@ typedef struct event {
     char arg[20];
 } Event;
 
-
+int must_exit = 0;
+int sig_received = 0;
+pthread_t netThreads[NETWORK_THREADS];
 int len = 0;
 uint8_t pkt[PKT_LEN];
 Address *src;
@@ -45,7 +50,12 @@ int com;
 char arg[20];
 ChanState home_chan;
 
-	/* Checks the timer for a channel's state, retransmitting when necessary */
+static void signal_handler(int signum) {
+    sig_received = signum;
+    must_exit++;
+}
+
+/* Checks the timer for a channel's state, retransmitting when necessary */
 void check_timer(ChanState *state) {
     decrement_ticks(state);
     if (ticks_left(state)) return;
@@ -207,32 +217,57 @@ void *ui_thread(void *e){
     }
 }
 
+void *network_handler_thread(void *eQueue) {
+    TSUQueue * netEventQ = (TSUQueue *) eQueue;
+    Event *event = NULL;
+    while (1) {
+        tsuq_take(netEventQ, (void**)&event);
+        network_handler(event->src, event->pkt, event->len);
+        free(event);
+    }
+}
 
 int main(){
+    int i = 0;
     pthread_t network_t;
     pthread_t ui_t;
     Event *event = NULL;
-    TSUQueue *eventQ = tsuq_create();
+    TSUQueue *netEventQ = tsuq_create();
     ctable_init_table();
     cstate_init_state(&home_chan, 0);
     //set timer for cleaner(TICK_RATE);
     src = net_addralloc();
     int status = net_init();
     if (status == 0){
-        printf("Catastrophic error, exiting.\n");
+        printf("Catastrophic error (net_init), exiting.\n");
         return -1;
     }
-    pthread_create(&network_t, NULL, network_thread, eventQ);
-    pthread_create(&ui_t, NULL, ui_thread, eventQ);
-    while (1){
-        tsuq_take(eventQ, (void**)&event);
-        printf("Event status: %d\n", event->type);
-        switch(event->type){
-            case(NETWORK_EVENT): network_handler(event->src, event->pkt, event->len); break;
-            case(UI_EVENT): ui_handler(event->command, event->arg); break;
-            case(HWDB_EVENT): break;
-        }
-        free(event);
+    pthread_create(&network_t, NULL, network_thread, netEventQ);
+    //pthread_create(&ui_t, NULL, ui_thread, eventQ);
+    /* Init network handler threads */
+    for (; i < NETWORK_THREADS; ++i) {
+        pthread_create(&netThreads[i], NULL, network_handler_thread, netEventQ);
     }
+    if (signal(SIGTERM, signal_handler) == SIG_IGN)
+        signal(SIGTERM, SIG_IGN);
+    if (signal(SIGINT , signal_handler) == SIG_IGN)
+        signal(SIGINT , SIG_IGN);
+    if (signal(SIGHUP , signal_handler) == SIG_IGN)
+        signal(SIGHUP , SIG_IGN);
+
+    // while (1){
+    //     tsuq_take(eventQ, (void**)&event);
+    //     printf("Event status: %d\n", event->type);
+    //     switch(event->type){
+    //         case(NETWORK_EVENT): network_handler(event->src, event->pkt, event->len); break;
+    //         case(UI_EVENT): ui_handler(event->command, event->arg); break;
+    //         case(HWDB_EVENT): break;
+    //     }
+    //     free(event);
+    //}
+    while (!must_exit){
+        pause();
+    }
+    printf("controller>> Signal caught - Exiting\n");
     return 0;
 }
