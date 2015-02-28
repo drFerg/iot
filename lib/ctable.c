@@ -1,8 +1,10 @@
-#include "ctable.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+#include "ctable.h"
 
 #if DEBUG
-#include "printf.h"
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINTFFLUSH(...) printfflush()
 #elif SIM
@@ -13,87 +15,126 @@
 #define PRINTFFLUSH(...)
 #endif
 
-static Channel channelTable[CHANNEL_NUM];
-static Channel *nextFree;
-static Channel *iterCurrent;
-static Channel *iterStart;
-uint8_t size;
+static Channel *channels;
+pthread_mutex_t *lock;
+static Channel *freeList;
+uint32_t size;
+uint32_t alloc_size;
+uint32_t next_slot;
 
-void init_state(ChanState *state, uint8_t chan_num){
-	state->chan_num = chan_num;
-	state->seqno = 0;
-	state->remote_addr = 0;
-	state->ticks_till_ping = 0;
+void init_state(Channel *chan, uint8_t chan_num){
+	chan->state->chan_num = chan_num;
+	chan->state->seqno = 0;
+	chan->state->remote_addr = 0;
+	chan->state->ticks_till_ping = 0;
 }
 /* 
  * initialise the channel table 
  */
 void ctable_init_table(){
-	uint8_t i;
-	size = 0;
-	nextFree = channelTable;
-	for (i = 0; i < CHANNEL_NUM; i++){
-		channelTable[i].active = 0;
-		channelTable[i].nextChannel = (struct knot_channel *)&(channelTable[(i+1) % CHANNEL_NUM]);
-		init_state((&channelTable[i].state), i + 1);
+	alloc_size = CHANNEL_NUM;
+	channels = (Channel *) (malloc(sizeof(Channel) * alloc_size));
+	if (channels != NULL) {
+		size = 0;
+		freeList = NULL;
+		lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
+		if (lock != NULL) {
+			pthread_mutex_init(lock, NULL);
+			PRINTF("ctable>> Table create successfully (%d channels)\n", CHANNEL_NUM);
+			return;
+		}
+		else free(channels);
 	}
-	channelTable[CHANNEL_NUM-1].nextChannel = NULL;
-	PRINTF("Num of channels: %d\n", CHANNEL_NUM);PRINTFFLUSH();
+	PRINTF("ctable>> Table create failed\n");
+}
+
+/* resize channel table, if possible 
+ * return 1 if successful, 0 otherwise
+ */
+int resize() {
+	Channel *new = NULL;
+	alloc_size *= 2;
+	new = (Channel *) malloc(sizeof(Channel) * alloc_size);
+	if (new != NULL) { 
+		memcpy(new, channels, size);
+		free(channels);
+		channels = new;
+		PRINTF("ctable>> Table resized (%d channels)\n", alloc_size);
+		return 1;
+	}
+	return 0;
 }
 
 /*
  * create a new channel if space available
- * return channel num if successful, 0 otherwise
+ * return channel if successful, NULL otherwise
  */
 ChanState* ctable_new_channel(){
-	Channel *temp;
-	if (size >= CHANNEL_NUM) return NULL;
-	temp = nextFree;
-	temp->active = 1;
-	nextFree = temp->nextChannel;
-	size++;
-	if (iterStart) {
-		temp->nextChannel = iterStart;
-		iterStart = temp;
+	Channel *chan = NULL;
+	uint32_t chan_num = 0;
+	pthread_mutex_lock(lock);
+	/* Check if free list has any */
+	if (freeList) { 
+		chan = freeList;
+		freeList = freeList->next;
+		chan_num = chan->state->chan_num;
 	}
-	return &(temp->state);
+	else { /* Otherwise get next slot in the array */
+		/* Check size and resize if necessary */
+		if (size >= alloc_size && resize() == 0){
+			pthread_mutex_unlock(lock);
+			return NULL;
+		}
+		chan_num = next_slot;
+		chan = &(channels[next_slot++]);
+		chan->state = (ChanState *) malloc(sizeof(ChanState));
+		if (chan->state == NULL) {
+			next_slot--;
+			pthread_mutex_unlock(lock);
+			return NULL;
+		}
+	}
+	init_state(chan, chan_num);
+	pthread_mutex_unlock(lock);
+	PRINTF("ctable>> Added new channel (%d)\n", chan_num);
+	return chan->state;
 }
 
 /* 
  * get the channel state for the given channel number
  * return channel if successful, NULL otherwise
  */
-ChanState* ctable_get_channel_state(int channel){
-	if (channelTable[channel-1].active){
-		return &(channelTable[channel-1].state);
-	} else return NULL;
+ChanState* ctable_get_channel_state(uint32_t chan_num){
+	Channel *chan = NULL;
+	pthread_mutex_lock(lock);
+	chan = &(channels[chan_num]);
+	pthread_mutex_unlock(lock);
+	return chan->state;
 }
+
 /*
  * remove specified channel state from table
- * (scrubs and frees space in table for a new channel)
+ * (adds channel back to free list)
  */
-void ctable_remove_channel(int channel){
-	Channel *next;
-	Channel * chan = &(channelTable[channel-1]);
-	chan->nextChannel = nextFree;
-	init_state(&(chan->state), channel);
-	chan->active = 0;
-	nextFree = chan;
-	size--;
-	if (iterStart == chan){
-		iterStart = chan->nextChannel;
-	} else {
-		next = iterStart;
-		while (next){
-			if (next->nextChannel == chan){
-				next->nextChannel = chan->nextChannel;
-				return;
-			}
-		}
-	}
+void ctable_remove_channel(uint32_t chan_num){
+	pthread_mutex_lock(lock);
+	channels[chan_num].next = freeList;
+	freeList = &(channels[chan_num]);
+	pthread_mutex_unlock(lock);
+	PRINTF("ctable>> Removed channel\n");
 }
 
 /* 
  * destroys table 
  */
-void ctable_destroy_table(){}
+void ctable_destroy_table(){
+	pthread_mutex_lock(lock);
+	uint32_t i = 0;
+	for (; i < next_slot; i++) {
+		free(channels[i].state);
+	}
+	free(channels);
+	pthread_mutex_unlock(lock);
+	free(lock);
+	PRINTF("ctable>> Table destroyed\n");
+}

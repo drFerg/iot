@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "iot.h"
+
 #if DEBUG
-#include "printf.h"
 #define PRINTF(...) printf(__VA_ARGS__)
-#define PRINTFFLUSH(...) printfflush()
 #elif SIM
 #define PRINTF(...) dbg("DEBUG",__VA_ARGS__)
 #define PRINTFFLUSH(...)
@@ -49,9 +49,9 @@ void send(Address *addr, DataPayload *dp){
 		PRINTF("RADIO>> iot Payload Length: %d\n", dp->dhdr.tlen);
 	}
 	else {
-		PRINTF("ID: %d, Radio Msg could not be sent, channel busy\n", TOS_NODE_ID);
+		PRINTF("ID: Radio Msg could not be sent, channel busy\n");
 	}
-	PRINTFFLUSH();
+	
 }
 
 void dp_complete(DataPayload *dp, uint8_t src, uint8_t dst, 
@@ -151,7 +151,7 @@ void iot_connect(ChanState *state, Address *addr, int rate){
     set_attempts(state, ATTEMPTS);
     set_state(state, STATE_CONNECT);
    	PRINTF("iot>> Sent connect request from chan %d\n", state->chan_num);
-    PRINTFFLUSH();
+    
 	
 }
 
@@ -176,10 +176,10 @@ void iot_connect_handler(ChanState *state, DataPayload *dp, Address *src){
 	set_attempts(state, ATTEMPTS);
 	set_state(state, STATE_CONNECT);
 	PRINTF("iot>> %d wants to connect from channel %d\n", src, state->remote_chan_num);
-	PRINTFFLUSH();
+	
 	PRINTF("iot>> Replying on channel %d\n", state->chan_num);
 	PRINTF("iot>> The rate is set to: %d\n", state->rate);
-	PRINTFFLUSH();
+	
 }
 
 uint8_t iot_controller_cack_handler(ChanState *state, DataPayload *dp){
@@ -196,7 +196,7 @@ uint8_t iot_controller_cack_handler(ChanState *state, DataPayload *dp){
 	}
 	PRINTF("iot>> %s accepts connection request on channel %d\n", 
 		net_ntoa(state->remote_addr),
-		dp->hdr.src_chan_num);PRINTFFLUSH();
+		dp->hdr.src_chan_num);
 	state->remote_chan_num = dp->hdr.src_chan_num;
 	new_dp = (DataPayload *)&(state->packet);
 	clean_packet(new_dp);
@@ -221,7 +221,7 @@ uint8_t iot_sensor_cack_handler(ChanState *state, DataPayload *dp){
 	}
 	set_ticks(state, ticks_till_ping(state->rate));
 	PRINTF("iot>> TX rate: %d\n", state->rate);
-	PRINTF("iot>> CONNECTION FULLY ESTABLISHED<<\n");PRINTFFLUSH();
+	PRINTF("iot>> CONNECTION FULLY ESTABLISHED<<\n");
 	set_state(state, STATE_CONNECTED);
 	return 1;
 }

@@ -6,7 +6,6 @@
 #include "KNoTProtocol.h"
 #include "KNoT.h"
 #if DEBUG
-#include "printf.h"
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINTFFLUSH(...) printfflush()
 #elif SIM
@@ -62,7 +61,7 @@ implementation
             call KNoT.close_graceful(state);
             call ChannelTable.remove_channel(state->chan_num);
         }
-        PRINTFFLUSH();
+        
     }
 
     /* Run once every 20ms */
@@ -84,7 +83,7 @@ implementation
 	
 	event void Boot.booted() {
 		PRINTF("*********************\n****** BOOTED *******\n*********************\n");
-        PRINTFFLUSH();
+        
         call LEDBlink.report_problem();
         call ChannelTable.init_table();
         call ChannelState.init_state(&home_chan, 0);
@@ -108,7 +107,7 @@ implementation
 		PRINTF("SEN>> Data is %d bytes long\n", dp->dhdr.tlen);
 		PRINTF("SEN>> Received a %s command\n", cmdnames[cmd]);
 		PRINTF("SEN>> Message for channel %d\n", dp->hdr.dst_chan_num);
-        PRINTFFLUSH();
+        
 
         switch(cmd){
             case(QUERY): call KNoT.query_handler(&home_chan, dp, src); return msg;
@@ -120,7 +119,7 @@ implementation
         state = call ChannelTable.get_channel_state(dp->hdr.dst_chan_num);
         /* Always allow disconnections to prevent crazies */
         if (!state){ /* Attempt to kill connection if no state held */
-            PRINTF("Channel %d doesn't exist\n", dp->hdr.dst_chan_num);PRINTFFLUSH();
+            PRINTF("Channel %d doesn't exist\n", dp->hdr.dst_chan_num);
             state = &home_chan;
             state->remote_chan_num = dp->hdr.src_chan_num;
             state->remote_addr = src;
@@ -128,7 +127,7 @@ implementation
             call KNoT.close_graceful(state);
             return msg;
         } else if (!call KNoT.valid_seqno(state, dp)) {
-            PRINTF("Old packet\n");PRINTFFLUSH();
+            PRINTF("Old packet\n");
             return msg;
         }
         /* PUT IN QUERY CHECK FOR TYPE */
@@ -142,7 +141,7 @@ implementation
         }
         PRINTF("FINISHED.\n");
         call LEDBlink.report_received();
-        PRINTF("----------\n");PRINTFFLUSH();
+        PRINTF("----------\n");
         return msg; /* Return packet to TinyOS */
     }
 

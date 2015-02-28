@@ -8,7 +8,7 @@
 #
 
 # The recommended compiler flags for the Raspberry Pi
-CFLAGS= -Wall -W -fPIC -g -pthread
+CFLAGS= -Wall -W -fPIC -g -pthread -DDEBUG
 RF24=../../nrf_radio/RF24/src/
 # make all
 ifeq ($(platform), pi)

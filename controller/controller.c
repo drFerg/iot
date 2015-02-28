@@ -13,9 +13,7 @@
 #include "network.h"
 
 #if DEBUG
-#include "printf.h"
 #define PRINTF(...) printf(__VA_ARGS__)
-#define PRINTFFLUSH(...) printfflush()
 #elif SIM
 #define PRINTF(...) dbg("DEBUG",__VA_ARGS__)
 #define PRINTFFLUSH(...)
@@ -98,7 +96,7 @@ void network_handler(Address *src, uint8_t* payload, uint8_t len) {
 	PRINTF("CON>> Received packet from Thing: %s\n", net_ntoa(src));
 	PRINTF("CON>> Received a %s command\n", cmdnames[cmd]);
 	PRINTF("CON>> Message for channel %d\n", dp->hdr.dst_chan_num);
-	PRINTFFLUSH();
+	
 
 	switch(cmd) { /* Drop packets for cmds we don't accept */
         case(QUERY): return;
@@ -143,7 +141,7 @@ void network_handler(Address *src, uint8_t* payload, uint8_t len) {
 // 	PRINTF("SERIAL> Packet length: %d\n", dp->dhdr.tlen);
 // 	PRINTF("SERIAL> Message for channel %d\n", dp->hdr.dst_chan_num);
 // 	PRINTF("SERIAL> Command code: %d\n", dp->hdr.cmd);
-// 	PRINTFFLUSH();
+// 	
 
 // 	switch (cmd) {
 // 		case(QUERY): iot_query(&home_chan, 1/*((QueryMsg*)dp)->type*/);break;
@@ -163,7 +161,7 @@ void network_handler(Address *src, uint8_t* payload, uint8_t len) {
 void ui_handler(int command, char *arg){
     switch(command){
         case(1): iot_query(&home_chan, (int)arg[0]); break;
-        case(2): iot_connect(&home_chan, (Address*)arg, 10); break;
+        case(2): iot_connect(ctable_new_channel(), (Address*)arg, 10); break;
     }
 }
 
@@ -269,5 +267,6 @@ int main(){
         pause();
     }
     printf("controller>> Signal caught - Exiting\n");
+    ctable_destroy_table();
     return 0;
 }
