@@ -16,10 +16,8 @@ ifeq ($(platform), pi)
 endif
 
 DEPS=
-OBJECTS=rf24_network.o cstate.o ctable.o iot.o
+OBJECTS=cstate.o ctable.o iot.o
 OBJ=${addprefix ../lib/, ${OBJECTS}}
-DUMMYOBJECTS=dummy_network.o cstate.o ctable.o iot.o
-DOBJ=${addprefix ../lib/, ${DUMMYOBJECTS}} 
 ADTSOBJ=${ADTS}/tsuqueue.o
 
 LIBS=-lrf24 ${ADTS}/libADTs.a -pthread
@@ -35,13 +33,20 @@ objs:
 dummy_objs: 
 	(cd ${IOT}; make dummy)
 
+udp_objs: 
+	(cd ${IOT}; make udp)
+
 libADTs.a:
 	(cd ${ADTS}; make)
 
 controller: controller.c objs
-	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} controller.c ${OBJ} ${LIBS} -o controller 
+	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} controller.c ../lib/network_rf24.o ${OBJ} ${LIBS} -o controller 
 
 dummy_controller: controller.c dummy_objs ${ADTS}/tsuqueue.o ${ADTS}/tsuqueue.h
-	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} controller.c ${DOBJ} ${LIBS} -o controller
+	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} controller.c ../lib/network_dummy.o ${OBJ} ${LIBS} -o controller
+
+udp_controller: controller.c udp_objs ${ADTS}/tsuqueue.o ${ADTS}/tsuqueue.h
+	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} controller.c ../lib/network_udp.o ${OBJ} ${LIBS} -o controller
+
 clean:
 	rm -rf *o ${LIBNAME}

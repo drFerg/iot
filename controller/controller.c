@@ -47,6 +47,7 @@ Address *src;
 int com;
 char arg[20];
 ChanState home_chan;
+size_t pkt_len = PKT_LEN;
 
 static void signal_handler(int signum) {
     sig_received = signum;
@@ -178,7 +179,7 @@ void *network_thread(void *eQueue){
         e->type = NETWORK_EVENT;
         /* Receive packet */
         while (e->len == 0)
-            e->len = net_recvfrom(&(e->pkt), PKT_LEN, e->src, SYNC);
+            e->len = net_recvfrom(&(e->pkt), pkt_len, e->src, SYNC);
         tsuq_add(eventQ, e); /* Added to event Q */
     }
 }
@@ -234,8 +235,8 @@ int main(){
     ctable_init_table();
     cstate_init_state(&home_chan, 0);
     //set timer for cleaner(TICK_RATE);
-    src = net_addralloc();
-    int status = net_init();
+    src = net_addralloc("12345");
+    int status = net_init(src);
     if (status == 0){
         printf("Catastrophic error (net_init), exiting.\n");
         return -1;
@@ -268,5 +269,6 @@ int main(){
     }
     printf("controller>> Signal caught - Exiting\n");
     ctable_destroy_table();
+    net_close();
     return 0;
 }
