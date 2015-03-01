@@ -16,66 +16,108 @@
 #define PRINTF(...)
 #define PRINTFFLUSH(...)
 #endif
+#define ADDR_LEN 8
 
 typedef struct address {
-    int addr;
+    int port;
+    char addr_s[ADDR_LEN];
+    struct addrinfo *servinfo;
+    struct sockaddr *addr;
+    socklen_t addrlen;
 } Address;
 
-Address address = {.addr = 0};
-Address broadcast = {.addr = 255};
+Address address = {.port = 0};
+Address broadcast = {.port = 255};
 int sock, length, clientlen, n;
 struct sockaddr_in server;
 struct sockaddr_in client;
+struct addrinfo hints, *servinfo, *p;
 socklen_t saddr_len; 
 
 int net_init(Address *addr){
-    PRINTF("dummy_udp>> Starting network layer...\n");
-    address.addr = addr->addr;
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) perror("dummy_udp>> Error in opening socket");
-    PRINTF("dummy_udp>> Socket opened (%d)\n", sock);
-    length = sizeof(struct sockaddr_in);
-    memset(&server, 0, length);
-    saddr_len = sizeof(struct sockaddr_in);
-    server.sin_family = AF_INET;
-    server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons(address.addr);
-    if (bind(sock, (struct sockaddr *) &server, length) < 0)
-        perror("dummy_udp>> Error in binding");
-    /* spin off sensor/actuator threads? */
-    PRINTF("dummy_udp>> Socket bound to port %d\n", address.addr);
-    PRINTF("dummy_udp>> Network layer started!\n");
+    PRINTF("udp>> Starting network layer...\n");
+    /* Loop through all addrinfo results, binding to first valid one */
+    for(p = addr->servinfo; p != NULL; p = p->ai_next) {
+        if ((sock = socket(p->ai_family, p->ai_socktype,
+                           p->ai_protocol)) == -1) {
+            perror("udp>> Error opening socket");
+            continue;
+        }
+        PRINTF("udp>> Socket opened (%d)\n", sock);
+
+        if (bind(sock, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sock);
+            perror("udp>> Error in binding");
+            continue;
+        }
+        break;
+    }
+    if (p == NULL) {
+        PRINTF("udp>> Failed to bind socket\n");
+        return 0;
+    }
+    freeaddrinfo(addr->servinfo);
+    PRINTF("udp>> Socket bound to port %d\n", addr->port);
+    PRINTF("udp>> Network layer started!\n");
     return 1;
 }
 
 void net_close() {
-    PRINTF("dummy_udp>> Closed network socket\n");
+    PRINTF("udp>> Closed network socket\n");
     close(sock);
 }
 
 int net_sendto(Address *addr, void *payload, int len){
-    return sendto(sock, payload, len, 0, (struct sockaddr *) &client, saddr_len);
+    return sendto(sock, payload, len, 0, addr->addr, 
+                                         addr->addrlen);
 }
 
 int net_recvfrom(void *payload, size_t len, Address *addr, int block){
-    return recvfrom(sock, payload, len, 0, (struct sockaddr *) &client, &saddr_len);
+    addr = (Address *) malloc(sizeof(Address));
+    if (addr == NULL) return -1;
+    memset(addr, '\0', sizeof(Address));
+    addr->addr = (struct sockaddr *) malloc(sizeof(struct sockaddr));
+    if (addr->addr == NULL) return -1;
+    memset(addr->addr, '\0', sizeof(struct sockaddr));
+    return recvfrom(sock, payload, len, 0, addr->addr, 
+                                           &(addr->addrlen));
 }
 
 char * net_ntoa(Address *addr){
-    static char str[4];
-    sprintf(str, "%d", addr->addr);
-    return str;
+    memset(addr->addr_s, '\0', ADDR_LEN);
+    sprintf(addr->addr_s, "%d", addr->port);
+    return addr->addr_s;
 }
 int net_aton(char *addr_s, Address *addr){
-    return sscanf(addr_s, "%d", &(addr->addr));
+    return sscanf(addr_s, "%d", &(addr->port));
 }
 
 void net_addrcpy(Address *dst, Address *src){
-    dst->addr = src->addr;
+    memcpy(dst, src, sizeof(Address));
+    dst->servinfo = (struct addrinfo *) malloc(sizeof(struct addrinfo));
+    if (dst->servinfo == NULL) return;
+    memcpy(dst->servinfo, src->servinfo, sizeof(struct addrinfo));
+    dst->addr = dst->servinfo->ai_addr;
+    dst->addrlen = dst->servinfo->ai_addrlen;
 }
 Address *net_addralloc(char *addr_s){
+    struct addrinfo hints;
+    int rv;
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE; // use my IP
+
     Address *addr = (Address*)malloc(sizeof(Address));
-    if (addr) net_aton(addr_s, addr);
+    memset(addr, '\0', sizeof(Address));
+    if (addr) {
+        net_aton(addr_s, addr);
+        if ((rv = getaddrinfo(NULL, net_ntoa(addr), &hints, &(addr->servinfo))) != 0) {
+            PRINTF("udp>> getaddrinfo: %s\n", gai_strerror(rv));
+        }
+        addr->addr = addr->servinfo->ai_addr;
+        addr->addrlen = addr->servinfo->ai_addrlen;
+    }
     return addr;
 }
 void net_addrfree(Address *addr){
