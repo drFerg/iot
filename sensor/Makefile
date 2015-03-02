@@ -20,7 +20,7 @@ OBJECTS=cstate.o ctable.o iot.o
 OBJ=${addprefix ../lib/, ${OBJECTS}}
 ADTSOBJ=${ADTS}/tsuqueue.o
 
-LIBS=-lrf24 ${ADTS}/libADTs.a -pthread
+LIBS=${ADTS}/libADTs.a -pthread
 ADTS=../adts
 
 
@@ -40,7 +40,7 @@ libADTs.a:
 	(cd ${ADTS}; make)
 
 sensor: sensor.c objs
-	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} sensor.c ../lib/network_rf24.o ${OBJ} ${LIBS} -o sensor 
+	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} sensor.c ../lib/network_rf24.o ${OBJ} ${LIBS} -lrf24 -o sensor 
 
 dummy_sensor: sensor.c dummy_objs ${ADTS}/tsuqueue.o ${ADTS}/tsuqueue.h
 	gcc ${CFLAGS} -I${IOT} -I${ADTS} -L${IOT} sensor.c ../lib/network_dummy.o ${OBJ} ${LIBS} -o sensor

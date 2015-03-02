@@ -111,7 +111,7 @@ void network_handler(Address *src, uint8_t* payload, uint8_t len) {
 		PRINTF("Channel %d doesn't exist\n", dp->hdr.dst_chan_num);
 		state = &home_chan;
 		state->remote_chan_num = dp->hdr.src_chan_num;
-		net_addrcpy(state->remote_addr, src);
+		state->remote_addr = net_addrcpy(src);
 		state->seqno = dp->hdr.seqno;
 		iot_close_graceful(state);
 		return;
@@ -180,7 +180,7 @@ void *network_thread(void *eQueue){
         e->type = NETWORK_EVENT;
         /* Receive packet */
         while (e->len == 0)
-            e->len = net_recvfrom(&(e->pkt), pkt_len, e->src, SYNC);
+            e->len = net_recvfrom(&(e->pkt), pkt_len, &(e->src), SYNC);
         tsuq_add(eventQ, e); /* Added to event Q */
     }
 }
@@ -209,7 +209,9 @@ void *ui_thread(void *e){
             }
             if (strncmp(command, "connect", 7) == 0){
                 event->command = 2;
-                strcpy(event->arg, text + 8);
+                int i = 0;
+                sscanf(text+8, "%d", &i);
+                sprintf(event->arg, "%d", i);
                 printf("Connect to device %s", event->arg); 
             }
         }

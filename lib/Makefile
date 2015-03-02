@@ -38,11 +38,11 @@ network.o: network_rf24.c network.h
 dummy.o: network_dummy.c network.h 
 	gcc -c $(CFLAGS) -I$(RF24) network_dummy.c network.h 
 
-dummy: test.c ${DEPS} dummy.o ${LIBS}
-	gcc ${CFLAGS} test.c ${OBJECTS} network_dummy.o ${LIBS} -o test
+dummy: test.c ${DEPS} dummy.o
+	gcc ${CFLAGS} test.c ${OBJECTS} network_dummy.o -o test
 
-udp: test.c ${DEPS} udp.o ${LIBS}
-	gcc ${CFLAGS} test.c ${OBJECTS} network_udp.o ${LIBS} -o test
+udp: test.c ${DEPS} udp.o
+	gcc ${CFLAGS} test.c ${OBJECTS} network_udp.o -o test
 
 udp.o: network_udp.c network.h
 	gcc -c $(CFLAGS) -I$(RF24) network_udp.c network.h 

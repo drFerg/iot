@@ -72,33 +72,47 @@ int net_sendto(Address *addr, void *payload, int len){
                                          addr->addrlen);
 }
 
-int net_recvfrom(void *payload, size_t len, Address *addr, int block){
-    addr = (Address *) malloc(sizeof(Address));
+int net_recvfrom(void *payload, size_t len, Address **address, int block){
+    Address *addr = (Address *) malloc(sizeof(Address));
     if (addr == NULL) return -1;
+    *address = addr;
     memset(addr, '\0', sizeof(Address));
     addr->addr = (struct sockaddr *) malloc(sizeof(struct sockaddr));
-    if (addr->addr == NULL) return -1;
-    memset(addr->addr, '\0', sizeof(struct sockaddr));
+    if (addr->addr == NULL) {
+        free(addr); 
+        return -1;
+    }
+    addr->addrlen = sizeof(struct sockaddr);
+    memset(addr->addr, '\0', addr->addrlen);
     return recvfrom(sock, payload, len, 0, addr->addr, 
                                            &(addr->addrlen));
 }
 
-char * net_ntoa(Address *addr){
+char *net_ntoa(Address *addr){
     memset(addr->addr_s, '\0', ADDR_LEN);
-    sprintf(addr->addr_s, "%d", addr->port);
+    struct sockaddr_in *a = (struct sockaddr_in *) (addr->addr);
+    sprintf(addr->addr_s, "%hd", a->sin_port);
     return addr->addr_s;
 }
+
 int net_aton(char *addr_s, Address *addr){
     return sscanf(addr_s, "%d", &(addr->port));
 }
 
-void net_addrcpy(Address *dst, Address *src){
+Address *net_addrcpy(Address *src){
+    if (src == NULL) return NULL;
+    Address *dst = (Address *) malloc(sizeof(Address));
+    if (dst == NULL) return NULL;
+    memset(dst, '\0', sizeof(Address));
     memcpy(dst, src, sizeof(Address));
+    if (src->servinfo == NULL) return dst;
     dst->servinfo = (struct addrinfo *) malloc(sizeof(struct addrinfo));
-    if (dst->servinfo == NULL) return;
+    if (dst->servinfo == NULL) return NULL;
+    memset(dst->servinfo, '\0', sizeof(struct addrinfo));
     memcpy(dst->servinfo, src->servinfo, sizeof(struct addrinfo));
     dst->addr = dst->servinfo->ai_addr;
     dst->addrlen = dst->servinfo->ai_addrlen;
+    return dst;
 }
 Address *net_addralloc(char *addr_s){
     struct addrinfo hints;
@@ -109,10 +123,10 @@ Address *net_addralloc(char *addr_s){
     hints.ai_flags = AI_PASSIVE; // use my IP
 
     Address *addr = (Address*)malloc(sizeof(Address));
-    memset(addr, '\0', sizeof(Address));
     if (addr) {
+        memset(addr, '\0', sizeof(Address));
         net_aton(addr_s, addr);
-        if ((rv = getaddrinfo(NULL, net_ntoa(addr), &hints, &(addr->servinfo))) != 0) {
+        if ((rv = getaddrinfo(NULL, addr_s, &hints, &(addr->servinfo))) != 0) {
             PRINTF("udp>> getaddrinfo: %s\n", gai_strerror(rv));
         }
         addr->addr = addr->servinfo->ai_addr;
@@ -121,6 +135,7 @@ Address *net_addralloc(char *addr_s){
     return addr;
 }
 void net_addrfree(Address *addr){
+    if (addr->servinfo) freeaddrinfo(addr->servinfo);
     free(addr);
 }
 Address *net_addr(){
