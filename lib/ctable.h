@@ -4,13 +4,12 @@
 #include "cstate.h"
 /* Num of channels available in table */
 #ifndef CHANNEL_NUM
-#define CHANNEL_NUM 5
+#define CHANNEL_NUM 25
 #endif /* CHANNEL_NUM */
 
 typedef struct knot_channel{
-	ChanState state;
-	struct knot_channel *nextChannel;
-	uint8_t active;
+	ChanState *state;
+	struct knot_channel *next;
 }Channel;
 
 /* 
@@ -28,13 +27,13 @@ ChanState * ctable_new_channel();
  * get the channel state for the given channel number
  * return 1 if successful, 0 otherwise
  */
-ChanState * ctable_get_channel_state(int channel);
+ChanState * ctable_get_channel_state(uint32_t chan_num);
 
 /*
  * remove specified channel state from table
  * (scrubs and frees space in table for a new channel)
  */
-void ctable_remove_channel(int channel);
+void ctable_remove_channel(uint32_t chan_num);
 
 /* 
  * destroys table 

@@ -18,12 +18,13 @@ int net_init(){
     printf("dummy>> Network layer started!\n");
     return 1;
 }
+void net_close() {}
 int net_sendto(Address *addr, void *payload, int len){
     /*add to global message queue */
     return 1;
 }
 
-int net_recvfrom(void *payload, int len, Address *addr, int block){
+int net_recvfrom(void *payload, size_t len, Address *addr, int block){
     /* pull from global message queue or fake it */
     return 0;
 }
@@ -40,8 +41,10 @@ int net_aton(char *addr_s, Address *addr){
 void net_addrcpy(Address *dst, Address *src){
     dst->addr = src->addr;
 }
-Address *net_addralloc(){
-    return (Address*)malloc(sizeof(Address));
+Address *net_addralloc(char *addr_s){
+    Address *addr = (Address*)malloc(sizeof(Address));
+    if (addr) net_aton(addr_s, addr);
+    return addr;
 }
 void net_addrfree(Address *addr){
     free(addr);

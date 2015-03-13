@@ -8,7 +8,7 @@
 #
 
 # The recommended compiler flags for the Raspberry Pi
-CFLAGS= -Wall -W -fPIC -g -pthread
+CFLAGS= -Wall -W -fPIC -g -pthread -DDEBUG
 RF24=../../nrf_radio/RF24/src/
 # make all
 ifeq ($(platform), pi)
@@ -32,17 +32,23 @@ ctable.o:cstate.o ctable.c ctable.h
 iot.o: cstate.o ctable.o iot.h iot.c
 
 # Library parts
-network.o: rf24_network.c network.h 
-	gcc -c $(CFLAGS) -I$(RF24) rf24_network.c network.h
+network.o: network_rf24.c network.h 
+	gcc -c $(CFLAGS) -I$(RF24) network_rf24.c network.h
 
-dummy.o: dummy_network.c network.h 
-	gcc -c $(CFLAGS) -I$(RF24) dummy_network.c network.h 
+dummy.o: network_dummy.c network.h 
+	gcc -c $(CFLAGS) -I$(RF24) network_dummy.c network.h 
 
-dummy: test.c ${DEPS} dummy.o ${LIBS}
-	gcc ${CFLAGS} test.c ${OBJECTS} dummy_network.o ${LIBS} -o test 
+dummy: test.c ${DEPS} dummy.o
+	gcc ${CFLAGS} test.c ${OBJECTS} network_dummy.o -o test
+
+udp: test.c ${DEPS} udp.o
+	gcc ${CFLAGS} test.c ${OBJECTS} network_udp.o -o test
+
+udp.o: network_udp.c network.h
+	gcc -c $(CFLAGS) -I$(RF24) network_udp.c network.h 
 
 test: test.c ${DEPS} network.o ${LIBS}
-	gcc ${CFLAGS} test.c ${OBJECTS} rf24_network.o ${LIBS} -o test 
+	gcc ${CFLAGS} test.c ${OBJECTS} network_rf24.o ${LIBS} -o test 
 
 clean:
 	rm -rf *o ${LIBNAME}
