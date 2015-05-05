@@ -172,11 +172,11 @@ void *network_thread(void *eQueue){
     while(1){
         /* Prep Network event */
         e = (Event *) malloc(sizeof(Event));
-        memset(e, '\0', sizeof(Event));
         if (e == NULL) {
             printf("Network thread exit, malloc failed\n");
             exit(1);
         }
+        memset(e, '\0', sizeof(Event));
         e->type = NETWORK_EVENT;
         /* Receive packet */
         while (e->len == 0)

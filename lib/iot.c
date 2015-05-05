@@ -175,7 +175,7 @@ void iot_connect_handler(ChanState *state, DataPayload *dp, Address *src){
 	set_ticks(state, TICKS);
 	set_attempts(state, ATTEMPTS);
 	set_state(state, STATE_CONNECT);
-	PRINTF("iot>> %d wants to connect from channel %d\n", src, state->remote_chan_num);
+	PRINTF("iot>> %s wants to connect from channel %d\n", net_ntoa(src), state->remote_chan_num);
 	
 	PRINTF("iot>> Replying on channel %d\n", state->chan_num);
 	PRINTF("iot>> The rate is set to: %d\n", state->rate);
@@ -251,23 +251,14 @@ void iot_send_value(ChanState *state, uint8_t *data, uint8_t len){
     iot_send_on_chan(state, new_dp);
 }
 
-void iot_response_handler(ChanState *state, DataPayload *dp){
-	ResponseMsg *rmsg;
-	SerialResponseMsg *srmsg;
-	uint8_t temp;
+ResponseMsg *iot_response_handler(ChanState *state, DataPayload *dp){
 	if (state->state != STATE_CONNECTED && state->state != STATE_PING){
 		PRINTF("iot>> Not connected to device!\n");
-		return;
+		return NULL;
 	}
 	set_ticks(state, ticks_till_ping(state->rate)); /* RESET PING TIMER */
 	set_attempts(state, ATTEMPTS);
-	rmsg = (ResponseMsg *)dp->data;
-	memcpy(&temp, &(rmsg->data), 1);
-	PRINTF("iot>> Data rvd: %d\n", temp);
-	PRINTF("Temp: %d\n", temp);
-	//srmsg = (SerialResponseMsg *)dp->data;
-	//srmsg->src = state->remote_addr;
-	//send_on_serial(dp);
+	return (ResponseMsg *)dp->data;
 }
 
 void iot_send_rack(ChanState *state){

@@ -47,12 +47,9 @@
 #define NO_PAYLOAD          0
 #define MAX_DATA_SIZE      100
 #define RESPONSE_DATA_SIZE 16
-#define SYM_KEY_SIZE       10
-#define ASYM_SIZE          84
+
 #define NAME_SIZE          16
-#define MAC_SIZE            4
-#define E_NONCE_SIZE       45 /* 4(nonce) + 20(KEY_SIZE) + 1 + 20(HMAC) */ 
-#define E_KEY_SIZE         55 /* 4(nonce) + 10(SYM_KEY_SIZE)+ 20(KEY_SIZE) + 1 + 20(HMAC) */
+
 typedef struct chan_header {
 
 } ChanHeader;
@@ -73,68 +70,6 @@ typedef struct data_payload {		/* template for data payload */
    DataHeader dhdr;
    uint8_t data[MAX_DATA_SIZE];	/* data is address of MAX_DATA_SIZE bytes */
 } DataPayload;
-
-/*********************/
-/* Asymmetric Packet */
-typedef struct pubKey {
-   uint16_t x[10];
-   uint16_t y[10];
-} PubKey; /* 40bytes */
-
-typedef struct sig {
-   uint16_t r[11];
-   uint16_t s[11];
-} Signature; /* 42bytes */
-
-typedef struct pkc {
-   PubKey pubKey;
-   Signature sig;
-} PKC; /* 80bytes */
-
-typedef struct asym_query_payload {
-   PKC pkc;
-   uint8_t flags; /* handshake/cipherSpec? */
-} AsymQueryPayload; /* 81bytes */
-
-typedef struct asym_resp_ack_payload {
-   uint8_t flags;
-} AsymRespACKPayload; /* 81bytes */
-
-typedef struct asym_request_payload {
-   uint8_t e_nonce[E_NONCE_SIZE];
-   Signature sig;
-} AsymKeyRequestPayload; /* 85bytes */
-
-typedef struct asym_key_payload {
-   uint32_t nonce;
-   uint8_t sKey[10];
-} AsymKeyPayload;
-
-typedef struct asym_key_tx_payload {
-   uint8_t e_payload[E_KEY_SIZE];
-   Signature sig;
-} AsymKeyRespPayload;
-
-/********************/
-/* Symmetric Packet */
-typedef struct sec_header {
-   uint8_t tag[MAC_SIZE];
-} SSecHeader;
-
-typedef struct symmetric_secure_data_payload {
-   uint8_t flags;
-   /* 1 byte Pad */   
-   SSecHeader sh;
-   ChanHeader ch;
-   DataPayload dp;
-} SSecPacket;
-
-/****************/
-/* Plain Packet */
-typedef struct plain_data_payload {
-   ChanHeader ch;
-   DataPayload dp;
-} PDataPayload;
 
 typedef struct packet {
    uint8_t flags;

@@ -20,17 +20,10 @@ typedef uint8_t bool;
                  * number of ticks is doubled for each successive retry */
 #define ticks_till_ping(send_rate)((3000 * send_rate)/TICK_RATE) /* rate\s * 3000ms / TICK_RATE= 3xrate = will ping after */
                                /* 3 packets have not been received. */
-#define RSYN_RATE 15 /* Rate to send out a RSYN message */ 
+#define RSYN_RATE 15 /* Rate to send out a RSYN message */
+
 /* Memsets a Datapayload */
-#define clean_packet(dp) (memset(dp, 0, sizeof(PDataPayload)))
-
-
-#define PLAIN_TEXT_MASK (0 << 7)
-#define ASYMMETRIC_MASK (1 << 7)
-#define SYMMETRIC_MASK  (1 << 6)
-#define is_plaintext(flag) (flag & PLAIN_TEXT_MASK)
-#define is_asymmetric(flag) (flag & ASYMMETRIC_MASK)
-#define is_symmetric(flag) (flag & SYMMETRIC_MASK)
+#define clean_packet(dp) (memset(dp, 0, sizeof(DataPayload)))
 
 /* Checks the sequence number and returns 1 if in sequence, 0 otherwise */
 int iot_valid_seqno(ChanState *state, DataPayload *dp);
@@ -57,7 +50,7 @@ uint8_t iot_sensor_cack_handler(ChanState *state, DataPayload *dp);
 
 void iot_send_value(ChanState *state, uint8_t *data, uint8_t len);
 
-void iot_response_handler(ChanState *state, DataPayload *dp);
+ResponseMsg *iot_response_handler(ChanState *state, DataPayload *dp);
 
 void iot_send_rack(ChanState *state);
 void iot_rack_handler(ChanState *state, DataPayload *dp);

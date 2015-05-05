@@ -83,11 +83,12 @@ int net_recvfrom(void *payload, size_t len, Address *addr, int block){
                                            &(addr->addrlen));
 }
 
-char * net_ntoa(Address *addr){
+char *net_ntoa(Address *addr){
     memset(addr->addr_s, '\0', ADDR_LEN);
     sprintf(addr->addr_s, "%d", addr->port);
     return addr->addr_s;
 }
+
 int net_aton(char *addr_s, Address *addr){
     return sscanf(addr_s, "%d", &(addr->port));
 }
